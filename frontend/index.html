@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PDKS Paid Leave Calculator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Main card container */
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 520px;
+      text-align: center;
+    }
+
+    .logo { font-size: 40px; margin-bottom: 12px; }
+
+    h1 { font-size: 22px; color: #1e3a5f; margin-bottom: 6px; }
+
+    .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 36px; }
+
+    /* Drag and drop upload area */
+    .upload-area {
+      border: 2px dashed #93c5fd;
+      border-radius: 12px;
+      padding: 40px 20px;
+      background: #eff6ff;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 24px;
+    }
+
+    .upload-area:hover,
+    .upload-area.dragover { border-color: #2563eb; background: #dbeafe; }
+
+    .upload-area .icon { font-size: 36px; margin-bottom: 8px; }
+    .upload-area p { color: #3b82f6; font-weight: 500; }
+    .upload-area span { color: #9ca3af; font-size: 13px; }
+
+    #file-input { display: none; }
+
+    /* Selected file indicator */
+    .file-selected {
+      background: #f0fdf4;
+      border: 2px solid #86efac;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+    }
+
+    .file-selected .file-name {
+      font-weight: 600;
+      color: #166534;
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .file-selected .remove {
+      cursor: pointer;
+      color: #6b7280;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    /* Primary action button */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover { background: #1d4ed8; }
+    .btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* Loading spinner */
+    .loading {
+      display: none;
+      margin-top: 20px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .loading .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 3px solid #dbeafe;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Result panel */
+    .result {
+      display: none;
+      margin-top: 24px;
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .result h3 { color: #166534; margin-bottom: 12px; font-size: 16px; }
+
+    /* Stats boxes */
+    .stats { display: flex; gap: 12px; margin-bottom: 16px; }
+
+    .stat-box {
+      flex: 1;
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid #d1fae5;
+    }
+
+    .stat-box .number { font-size: 28px; font-weight: 700; color: #059669; }
+    .stat-box .label { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+    /* Download button */
+    .download-btn {
+      width: 100%;
+      padding: 12px;
+      background: #059669;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .download-btn:hover { background: #047857; }
+
+    /* Error message */
+    .error {
+      display: none;
+      margin-top: 16px;
+      background: #fef2f2;
+      border: 1.5px solid #fca5a5;
+      border-radius: 10px;
+      padding: 14px;
+      color: #dc2626;
+      font-size: 14px;
+    }
+
+    /* Footer note */
+    .info {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">📊</div>
+    <h1>PDKS Paid Leave Calculator</h1>
+    <p class="subtitle">Upload your Tempo PDKS Excel report and we'll calculate automatically</p>
+
+    <!-- File upload area -->
+    <div class="upload-area" id="upload-area">
+      <div class="icon">📁</div>
+      <p>Drag and drop your Excel file here</p>
+      <span>or click to browse (.xlsx)</span>
+      <input type="file" id="file-input" accept=".xlsx" />
+    </div>
+
+    <!-- Shows after file is selected -->
+    <div class="file-selected" id="file-selected">
+      <span>📄</span>
+      <span class="file-name" id="file-name"></span>
+      <span class="remove" id="file-remove">✕</span>
+    </div>
+
+    <button class="btn" id="calculate-btn" disabled>Calculate & Download</button>
+
+    <!-- Loading state -->
+    <div class="loading" id="loading">
+      <span class="spinner"></span> Processing, please wait...
+    </div>
+
+    <!-- Result panel -->
+    <div class="result" id="result">
+      <h3>✅ Calculation Complete!</h3>
+      <div class="stats">
+        <div class="stat-box">
+          <div class="number" id="stat-total">—</div>
+          <div class="label">Total Employees</div>
+        </div>
+        <div class="stat-box">
+          <div class="number" id="stat-eligible">—</div>
+          <div class="label">Leave Eligible</div>
+        </div>
+      </div>
+      <button class="download-btn" id="download-btn">⬇️ Download Excel Report</button>
+    </div>
+
+    <!-- Error message -->
+    <div class="error" id="error"></div>
+
+    <!-- Formula explanation -->
+    <div class="info">
+      Formula: OT50% + OT100% &gt; 30 hrs → (Total − 30) × 1.5 / 9.5 = paid leave days
+    </div>
+  </div>
+
+  <script>
+    // Element references
+    const uploadArea   = document.getElementById('upload-area');
+    const fileInput    = document.getElementById('file-input');
+    const fileSelected = document.getElementById('file-selected');
+    const fileName     = document.getElementById('file-name');
+    const fileRemove   = document.getElementById('file-remove');
+    const calculateBtn = document.getElementById('calculate-btn');
+    const loading      = document.getElementById('loading');
+    const result       = document.getElementById('result');
+    const error        = document.getElementById('error');
+    const downloadBtn  = document.getElementById('download-btn');
+
+    let selectedFile = null;
+    let downloadBlob = null;
+
+    // Open file picker on click
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    // Drag over highlight
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+
+    // Handle dropped file
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const f = e.dataTransfer.files[0];
+      if (f && f.name.endsWith('.xlsx')) selectFile(f);
+    });
+
+    // Handle file picker selection
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) selectFile(fileInput.files[0]);
+    });
+
+    // Remove selected file and reset UI
+    fileRemove.addEventListener('click', () => {
+      selectedFile = null;
+      fileInput.value = '';
+      fileSelected.style.display = 'none';
+      uploadArea.style.display = 'block';
+      calculateBtn.disabled = true;
+      result.style.display = 'none';
+      error.style.display = 'none';
+    });
+
+    // Show selected file name and enable button
+    function selectFile(f) {
+      selectedFile = f;
+      fileName.textContent = f.name;
+      uploadArea.style.display = 'none';
+      fileSelected.style.display = 'flex';
+      calculateBtn.disabled = false;
+      result.style.display = 'none';
+      error.style.display = 'none';
+    }
+
+    // Send file to backend and handle response
+    calculateBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      calculateBtn.disabled = true;
+      loading.style.display = 'block';
+      result.style.display = 'none';
+      error.style.display = 'none';
+
+      const form = new FormData();
+      form.append('file', selectedFile);
+
+      try {
+        const res = await fetch('http://127.0.0.1:8000/hesapla', {
+          method: 'POST',
+          body: form
+        });
+
+        if (!res.ok) throw new Error('Server error');
+
+        // Read stats from response headers
+        const total    = res.headers.get('X-Toplam') || '—';
+        const eligible = res.headers.get('X-Izin-Alan') || '—';
+
+        downloadBlob = await res.blob();
+
+        document.getElementById('stat-total').textContent    = total;
+        document.getElementById('stat-eligible').textContent = eligible;
+
+        loading.style.display = 'none';
+        result.style.display  = 'block';
+        calculateBtn.disabled = false;
+
+      } catch (e) {
+        loading.style.display = 'none';
+        error.style.display   = 'block';
+        error.textContent     = '❌ Error: ' + e.message;
+        calculateBtn.disabled = false;
+      }
+    });
+
+    // Trigger file download
+    downloadBtn.addEventListener('click', () => {
+      if (!downloadBlob) return;
+      const url = URL.createObjectURL(downloadBlob);
+      const a   = document.createElement('a');
+      a.href     = url;
+      a.download = `PaidLeave_Report_${new Date().toISOString().slice(0,10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
