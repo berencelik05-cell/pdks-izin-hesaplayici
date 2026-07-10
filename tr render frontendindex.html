@@ -311,7 +311,7 @@
       form.append('file', selectedFile);
 
       try {
-        const res = await fetch('https://pdks-izin-hesaplayici.onrender.com', {
+        const res = await fetch('http://127.0.0.1:8000/hesapla', {
           method: 'POST',
           body: form
         });
